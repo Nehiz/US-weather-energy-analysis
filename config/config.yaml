@@ -1,0 +1,31 @@
+cities:
+  - name: "New York"
+    state: "New York"
+    noaa_station: "GHCND:USW00094728"
+    eia_region: "NYIS"
+  - name: "Chicago"
+    state: "Illinois"
+    noaa_station: "GHCND:USW00094846"
+    eia_region: "PJM"
+  - name: "Houston"
+    state: "Texas"
+    noaa_station: "GHCND:USW00012960"
+    eia_region: "ERCO"
+  - name: "Phoenix"
+    state: "Arizona"
+    noaa_station: "GHCND:USW00023183"
+    eia_region: "AZPS"
+  - name: "Seattle"
+    state: "Washington"
+    noaa_station: "GHCND:USW00024233"
+    eia_region: "SCL"
+
+api:
+  noaa_base_url: "https://www.ncei.noaa.gov/cdo-web/api/v2"
+  eia_base_url: "https://api.eia.gov/v2/electricity/rto/daily-region-data/data/"
+  request_delay: 1.5
+  max_retries: 3
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

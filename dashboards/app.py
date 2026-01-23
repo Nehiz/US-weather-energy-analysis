@@ -16,6 +16,8 @@ from datetime import datetime, timedelta
 # Add src to path to import our modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from analysis import EnergyAnalysis
+from forecasting import EnergyForecaster
+from recommendations import EnergyRecommendationEngine
 
 # Page configuration
 st.set_page_config(
@@ -181,11 +183,20 @@ def main():
     
     st.markdown("---")
     
-    # Visualization 1: Geographic Overview
-    st.header("📍 Visualization 1: Geographic Overview")
-    st.markdown("Interactive map showing current status for each city")
+    # Create tabs for different sections
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 Exploratory Analysis",
+        "🤖 ML Forecasting",
+        "💡 Recommendations",
+        "📖 About"
+    ])
     
-    # Prepare city summary data
+    with tab1:
+        # Visualization 1: Geographic Overview
+        st.header("📍 Geographic Overview")
+        st.markdown("Interactive map showing current status for each city")
+        
+        # Prepare city summary data
     city_summary = filtered_data.groupby('city').agg({
         'avg_temp': 'last',
         'energy_consumption': ['last', lambda x: ((x.iloc[-1] - x.iloc[-2]) / x.iloc[-2] * 100) if len(x) > 1 else 0],
@@ -241,22 +252,22 @@ def main():
                 'temp_energy_correlation': '{:.4f}'
             }),
             use_container_width=True
-        )
-    
-    st.markdown("---")
-    
-    # Visualization 2: Time Series Analysis
-    st.header("📈 Visualization 2: Time Series Analysis")
-    st.markdown("Temperature and energy consumption trends over time")
-    
-    # City selector for time series
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        ts_city_option = st.selectbox(
-            "Select city for time series view",
-            options=["All Cities Combined"] + sorted(cities),
-            key="ts_city"
-        )
+            )
+        
+        st.markdown("---")
+        
+        # Visualization 2: Time Series Analysis
+        st.header("📈 Time Series Analysis")
+        st.markdown("Temperature and energy consumption trends over time")
+        
+        # City selector for time series
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            ts_city_option = st.selectbox(
+                "Select city for time series view",
+                options=["All Cities Combined"] + sorted(cities),
+                key="ts_city"
+            )
     
     # Prepare time series data
     if ts_city_option == "All Cities Combined":
@@ -351,22 +362,22 @@ def main():
         
         with col3:
             if weekend_analysis.get('significant_difference') is not None:
-                sig_text = "Yes ✓" if weekend_analysis['significant_difference'] else "No ✗"
-                st.metric(
-                    "Statistically Significant",
-                    sig_text,
-                    help=f"P-value: {weekend_analysis.get('p_value', 'N/A')}"
-                )
-    
-    st.markdown("---")
-    
-    # Visualization 3: Correlation Analysis
-    st.header("🔗 Visualization 3: Correlation Analysis")
-    st.markdown("Scatter plot showing temperature-energy relationship with regression line")
-    
-    # Create scatter plot with trendline
-    fig_scatter = px.scatter(
-        filtered_data,
+                    sig_text = "Yes ✓" if weekend_analysis['significant_difference'] else "No ✗"
+                    st.metric(
+                        "Statistically Significant",
+                        sig_text,
+                        help=f"P-value: {weekend_analysis.get('p_value', 'N/A')}"
+                    )
+        
+        st.markdown("---")
+        
+        # Visualization 3: Correlation Analysis
+        st.header("🔗 Correlation Analysis")
+        st.markdown("Scatter plot showing temperature-energy relationship with regression line")
+        
+        # Create scatter plot with trendline
+        fig_scatter = px.scatter(
+            filtered_data,
         x='avg_temp',
         y='energy_consumption',
         color='city',
@@ -421,22 +432,22 @@ def main():
                 'tmax_correlation': '{:.4f}',
                 'tmin_correlation': '{:.4f}',
                 'avg_temperature': '{:.2f}',
-                'avg_energy': '{:,.0f}'
-            }),
-            use_container_width=True
-        )
-    
-    st.markdown("---")
-    
-    # Visualization 4: Usage Patterns Heatmap
-    st.header("🔥 Visualization 4: Usage Patterns Heatmap")
-    st.markdown("Average energy usage by temperature range and day of week")
-    
-    # City selector for heatmap
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        heatmap_city = st.selectbox(
-            "Select city for usage patterns",
+                    'avg_energy': '{:,.0f}'
+                }),
+                use_container_width=True
+            )
+        
+        st.markdown("---")
+        
+        # Visualization 4: Usage Patterns Heatmap
+        st.header("🔥 Usage Patterns Heatmap")
+        st.markdown("Average energy usage by temperature range and day of week")
+        
+        # City selector for heatmap
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            heatmap_city = st.selectbox(
+                "Select city for usage patterns",
             options=["All Cities Combined"] + sorted(cities),
             key="heatmap_city"
         )
@@ -476,43 +487,125 @@ def main():
         st.markdown(f"""
         **Temperature-Day Patterns:**
         - The heatmap shows how energy consumption varies by temperature range and day of week
-        - Darker colors indicate higher energy consumption
-        - Weekend patterns may differ from weekday patterns due to reduced commercial activity
+            - Darker colors indicate higher energy consumption
+            - Weekend patterns may differ from weekday patterns due to reduced commercial activity
+            
+            **Current Data Characteristics:**
+            - Temperature Range: {filtered_data['avg_temp'].min():.1f}°F to {filtered_data['avg_temp'].max():.1f}°F
+            - Most data falls in the colder temperature ranges (winter season)
+            - This affects the distribution across temperature categories
+            """)
         
-        **Current Data Characteristics:**
-        - Temperature Range: {filtered_data['avg_temp'].min():.1f}°F to {filtered_data['avg_temp'].max():.1f}°F
-        - Most data falls in the colder temperature ranges (winter season)
-        - This affects the distribution across temperature categories
-        """)
-    
-    st.markdown("---")
-    
-    # Footer with summary statistics
-    st.header("📊 Summary Statistics")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Temperature Stats")
-        temp_stats = {
-            'Average Temperature': f"{filtered_data['avg_temp'].mean():.2f}°F",
-            'Min Temperature': f"{filtered_data['avg_temp'].min():.2f}°F",
+        st.markdown("---")
+        
+        # Footer with summary statistics
+        st.header("📊 Summary Statistics")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Temperature Stats")
+            temp_stats = {
+                'Average Temperature': f"{filtered_data['avg_temp'].mean():.2f}°F",
+                'Min Temperature': f"{filtered_data['avg_temp'].min():.2f}°F",
             'Max Temperature': f"{filtered_data['avg_temp'].max():.2f}°F",
             'Temperature Range': f"{filtered_data['temp_range'].mean():.2f}°F"
         }
         for key, value in temp_stats.items():
-            st.metric(key, value)
+                st.metric(key, value)
+        
+        with col2:
+            st.subheader("Energy Stats")
+            energy_stats = {
+                'Average Consumption': f"{filtered_data['energy_consumption'].mean():,.0f} MWh",
+                'Min Consumption': f"{filtered_data['energy_consumption'].min():,.0f} MWh",
+                'Max Consumption': f"{filtered_data['energy_consumption'].max():,.0f} MWh",
+                'Total Consumption': f"{filtered_data['energy_consumption'].sum():,.0f} MWh"
+            }
+            for key, value in energy_stats.items():
+                st.metric(key, value)
     
-    with col2:
-        st.subheader("Energy Stats")
-        energy_stats = {
-            'Average Consumption': f"{filtered_data['energy_consumption'].mean():,.0f} MWh",
-            'Min Consumption': f"{filtered_data['energy_consumption'].min():,.0f} MWh",
-            'Max Consumption': f"{filtered_data['energy_consumption'].max():,.0f} MWh",
-            'Total Consumption': f"{filtered_data['energy_consumption'].sum():,.0f} MWh"
-        }
-        for key, value in energy_stats.items():
-            st.metric(key, value)
+    # ML Forecasting Tab
+    with tab2:
+        display_ml_forecasting(filtered_data)
+    
+    # Recommendations Tab
+    with tab3:
+        display_recommendations(filtered_data)
+    
+    # About Tab
+    with tab4:
+        st.header("📖 About This Dashboard")
+        
+        st.markdown("""
+        ### Overview
+        This dashboard provides comprehensive analysis of weather-energy relationships across 5 major US cities,
+        combining exploratory data analysis, machine learning forecasting, and actionable business recommendations.
+        
+        ### Data Sources
+        - **NOAA Climate Data Online**: Daily temperature readings from weather stations
+        - **EIA (Energy Information Administration)**: Regional electricity consumption data
+        - **Cities Analyzed**: New York, Chicago, Houston, Phoenix, Seattle
+        
+        ### Features
+        
+        #### 📊 Exploratory Analysis
+        - Geographic visualization of current energy status
+        - Time series trends for temperature and energy consumption
+        - Correlation analysis with statistical significance
+        - Usage pattern heatmaps by temperature and day of week
+        
+        #### 🤖 ML Forecasting
+        - **Gradient Boosting Regressor** for energy demand prediction
+        - Feature importance analysis showing key drivers
+        - Interactive forecast tool for scenario planning
+        - Business impact analysis with estimated cost savings
+        - Model performance metrics (R², MAE, MAPE)
+        
+        #### 💡 Recommendations
+        - Data-driven, actionable recommendations prioritized by impact
+        - Temperature sensitivity analysis by city
+        - Weekend vs weekday efficiency patterns
+        - City benchmarking to identify best practices
+        - Cost-benefit analysis for each recommendation
+        
+        ### Technical Stack
+        - **Python 3.14**: Core programming language
+        - **Streamlit**: Interactive web dashboard framework
+        - **Plotly**: Advanced data visualization
+        - **Scikit-learn**: Machine learning models
+        - **Pandas**: Data manipulation and analysis
+        - **NumPy & SciPy**: Scientific computing
+        
+        ### Key Insights
+        - **Negative correlation** between temperature and energy consumption in most cities
+        - Heating demand drives winter energy usage patterns
+        - Weekend consumption typically lower than weekdays
+        - Predictive models achieve ~18% R² with potential for improvement with more data
+        - Estimated annual savings potential: Varies by city (see Recommendations tab)
+        
+        ### Use Cases
+        1. **Energy Providers**: Demand forecasting and capacity planning
+        2. **Building Managers**: HVAC optimization strategies
+        3. **Policy Makers**: Grid reliability and efficiency initiatives
+        4. **Researchers**: Understanding urban energy dynamics
+        
+        ### Future Enhancements
+        - Integration with real-time weather APIs
+        - Hourly granularity for intraday patterns
+        - Renewable energy integration analysis
+        - Cost optimization algorithms
+        - Automated alert system for anomalies
+        
+        ### Project Repository
+        [View on GitHub](https://github.com/Nehiz/US-weather-energy-analysis)
+        
+        ### Author
+        Built as part of a data engineering and data science portfolio project.
+        
+        ---
+        *Last Updated: {datetime.now().strftime('%B %d, %Y')}*
+        """)
     
     # Sidebar info
     st.sidebar.markdown("---")
@@ -523,12 +616,234 @@ def main():
     - **EIA Energy Data**: Electricity consumption by region
     - **Cities**: New York, Chicago, Houston, Phoenix, Seattle
     
-    **Built with:** Python, Streamlit, Plotly
+    **Built with:** Python, Streamlit, Plotly, Scikit-learn
     """)
     
     st.sidebar.markdown("---")
     st.sidebar.caption(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
+# =============================================================================
+# ML FORECASTING SECTION
+# =============================================================================
+def display_ml_forecasting(df):
+    """Display ML forecasting and predictions"""
+    st.header("🤖 Machine Learning Forecasting")
+    
+    with st.spinner("Training forecasting model..."):
+        forecaster = EnergyForecaster()
+        metrics = forecaster.train_model(df)
+    
+    # Model Performance Metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Model R² Score", f"{metrics['test_r2']:.3f}", 
+                 help="How well the model explains variance (1.0 = perfect)")
+    with col2:
+        st.metric("Test MAE", f"{metrics['test_mae']:,.0f} MWh",
+                 help="Average prediction error")
+    with col3:
+        st.metric("Test MAPE", f"{metrics['test_mape']:.1f}%",
+                 help="Mean Absolute Percentage Error")
+    with col4:
+        st.metric("CV Score", f"{metrics['cv_r2_mean']:.3f}",
+                 help="Cross-validation R² score")
+    
+    # Feature Importance
+    st.subheader("📊 Feature Importance")
+    feature_imp = forecaster.get_feature_importance(10)
+    
+    fig = px.bar(
+        feature_imp, x='importance', y='feature',
+        orientation='h',
+        title='Top 10 Most Important Features for Energy Prediction',
+        labels={'importance': 'Importance Score', 'feature': 'Feature'},
+        color='importance',
+        color_continuous_scale='Viridis'
+    )
+    fig.update_layout(height=400, showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Predictions vs Actual
+    st.subheader("🎯 Predictions vs Actual Consumption")
+    predictions = forecaster.predict(df)
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df['date'], y=df['energy_consumption'],
+        mode='markers', name='Actual',
+        marker=dict(size=8, color='blue', opacity=0.6)
+    ))
+    fig.add_trace(go.Scatter(
+        x=df['date'], y=predictions,
+        mode='markers', name='Predicted',
+        marker=dict(size=8, color='red', opacity=0.6, symbol='x')
+    ))
+    fig.update_layout(
+        title='Model Predictions vs Actual Energy Consumption',
+        xaxis_title='Date',
+        yaxis_title='Energy Consumption (MWh)',
+        hovermode='x unified',
+        height=400
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Interactive Forecast Tool
+    st.subheader("🔮 Interactive Forecast Tool")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        forecast_city = st.selectbox("Select City", df['city'].unique())
+    with col2:
+        forecast_temp = st.slider("Forecast Temperature (°F)", 
+                                  min_value=int(df['avg_temp'].min()),
+                                  max_value=int(df['avg_temp'].max()),
+                                  value=int(df['avg_temp'].mean()))
+    with col3:
+        is_weekend = st.checkbox("Weekend?", value=False)
+    
+    forecast = forecaster.forecast_next_day(df, forecast_temp, forecast_city, is_weekend)
+    
+    st.info(f"""
+    **Forecast for {forecast_city} at {forecast_temp}°F:**
+    - Predicted Consumption: **{forecast['predicted_consumption']:,.0f} MWh**
+    - 95% Confidence Interval: [{forecast['lower_bound']:,.0f}, {forecast['upper_bound']:,.0f}] MWh
+    - Forecast Date: {forecast['forecast_date']}
+    """)
+    
+    # Business Impact
+    st.subheader("💰 Business Impact Analysis")
+    impact = forecaster.calculate_business_impact(df, cost_per_mwh=50)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Model Improvement", f"{impact['improvement_pct']:.1f}%",
+                 help="Improvement over naive baseline forecast")
+    with col2:
+        st.metric("Estimated Annual Savings", f"${impact['estimated_annual_savings']:,.0f}",
+                 help="Potential cost savings from accurate forecasting")
+    with col3:
+        st.metric("Total Energy", f"{impact['total_energy_mwh']:,.0f} MWh",
+                 help="Total energy in dataset")
+    
+    with st.expander("📘 About the Forecasting Model"):
+        st.markdown("""
+        **Gradient Boosting Regressor** trained on:
+        - Temperature features (avg, max, min, range, squared terms)
+        - Time-based features (day of week, month, cyclical encoding)
+        - Location features (city one-hot encoding)
+        - Interaction terms (temperature ratios, weekend indicators)
+        
+        **Use Cases:**
+        - Day-ahead energy demand forecasting
+        - Capacity planning and resource allocation
+        - Cost optimization through accurate predictions
+        - Risk management for over/under generation
+        """)
+
+
+# =============================================================================
+# RECOMMENDATIONS SECTION
+# =============================================================================
+def display_recommendations(df):
+    """Display actionable recommendations"""
+    st.header("💡 Actionable Recommendations")
+    
+    with st.spinner("Generating data-driven recommendations..."):
+        engine = EnergyRecommendationEngine()
+        recommendations = engine.generate_recommendations(df)
+        summary = engine.generate_executive_summary(recommendations)
+    
+    # Executive Summary
+    st.success(f"""
+    ### Executive Summary
+    {summary['summary']}
+    
+    **Total Potential Annual Savings:** ${summary['total_estimated_cost_savings']:,.0f}  
+    **Total Energy Reduction:** {summary['total_estimated_savings_mwh']:,.0f} MWh/year  
+    **Estimated Payback Period:** {summary['payback_period_months']} months
+    """)
+    
+    # Filter by priority
+    priority_filter = st.multiselect(
+        "Filter by Priority",
+        options=['HIGH', 'MEDIUM', 'LOW'],
+        default=['HIGH', 'MEDIUM', 'LOW']
+    )
+    
+    filtered_recs = [r for r in recommendations if r['priority'] in priority_filter]
+    
+    # Display recommendations
+    for i, rec in enumerate(filtered_recs, 1):
+        priority_colors = {'HIGH': '🔴', 'MEDIUM': '🟡', 'LOW': '🟢'}
+        
+        with st.expander(f"{priority_colors[rec['priority']]} {i}. {rec['title']}", expanded=(i <= 2)):
+            st.markdown(f"**Category:** {rec['category']}")
+            st.markdown(f"**Priority:** {rec['priority']}")
+            st.markdown(f"**Description:** {rec['description']}")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Estimated Annual Savings", f"${rec['estimated_cost_savings']:,.0f}")
+            with col2:
+                st.metric("Energy Reduction", f"{rec['estimated_savings_mwh']:,.0f} MWh/year")
+            
+            st.markdown("**Action Items:**")
+            for action in rec['action_items']:
+                st.markdown(f"- {action}")
+    
+    # Savings Breakdown Chart
+    st.subheader("💵 Savings Potential by Category")
+    
+    rec_df = pd.DataFrame(filtered_recs)
+    category_savings = rec_df.groupby('category')['estimated_cost_savings'].sum().sort_values(ascending=False)
+    
+    fig = px.bar(
+        x=category_savings.values,
+        y=category_savings.index,
+        orientation='h',
+        title='Potential Annual Savings by Category',
+        labels={'x': 'Annual Savings ($)', 'y': 'Category'},
+        color=category_savings.values,
+        color_continuous_scale='Greens'
+    )
+    fig.update_layout(height=400, showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Analysis Insights
+    st.subheader("📈 Supporting Analysis")
+    
+    tab1, tab2, tab3 = st.tabs(["Temperature Sensitivity", "Weekend Patterns", "City Benchmarking"])
+    
+    with tab1:
+        temp_analysis = engine.temperature_sensitivity_analysis(df)
+        temp_df = pd.DataFrame(temp_analysis).T
+        temp_df = temp_df.sort_values('temp_sensitivity', ascending=False)
+        
+        st.dataframe(temp_df.style.format({
+            'correlation': '{:.3f}',
+            'avg_consumption': '{:,.0f}',
+            'cold_day_avg': '{:,.0f}',
+            'hot_day_avg': '{:,.0f}',
+            'temp_sensitivity': '{:.3f}'
+        }), use_container_width=True)
+    
+    with tab2:
+        weekend_analysis = engine.weekend_vs_weekday_analysis(df)
+        st.dataframe(weekend_analysis.style.format({
+            'weekday_avg': '{:,.0f}',
+            'weekend_avg': '{:,.0f}',
+            'savings_pct': '{:.2f}%',
+            'potential_annual_savings_mwh': '{:,.0f}'
+        }), use_container_width=True)
+    
+    with tab3:
+        city_perf = engine.analyze_city_performance(df)
+        st.dataframe(city_perf, use_container_width=True)
+
+
+# =============================================================================
+# MAIN APP WITH NEW SECTIONS
+# =============================================================================
 if __name__ == "__main__":
     main()

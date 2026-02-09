@@ -5,8 +5,6 @@ __pycache__/
 logs/*.log
 data/raw/*
 !data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
 .streamlit/
 .pytest_cache/
 *.csv

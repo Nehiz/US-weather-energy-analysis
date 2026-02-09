@@ -3,8 +3,6 @@ venv/
 *.pyc
 __pycache__/
 logs/*.log
-data/raw/*
-!data/raw/.gitkeep
 .streamlit/
 .pytest_cache/
 *.csv
